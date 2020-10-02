@@ -61,7 +61,7 @@ wine_tokens %>%
   mutate(FREQ = TOKEN_CT/VARIETY_CT) -> wine_tokens
 
 
-## Filtering out tokens that appear in less than 2.5% of reviews
+## Filtering out tokens that appear in less than 2.5% (or 5%) of reviews
 
 wine_tokens %>%
   filter(FREQ >= 0.05) -> wine_tokens
@@ -121,7 +121,7 @@ for (i in temp_variety) {
                       y = temp_y_train,
                       family = "binomial",
                       alpha  = 1,
-                      nfolds = 12,
+                      nfolds = 10,
                       parallel = TRUE)
   
   ## Getting predictions for training data (for i of temp_variety)
@@ -213,7 +213,7 @@ for (i in temp_variety) {
                       y = temp_y_train,
                       family = "binomial",
                       alpha  = 1,
-                      nfolds = 12,
+                      nfolds = 10,
                       parallel = TRUE)
   
   ## Getting predictions for training data (for i of temp_variety)
@@ -256,16 +256,16 @@ wine_reviews_train %>%
   select(wine_review,
          variety) %>%
   cbind(x_train) %>%
-  write.csv("data//output//lasso//x_train.csv", row.names = FALSE)
+  write.csv("data//output//lasso//5 percent//x_train.csv", row.names = FALSE)
 
 wine_reviews_test %>%
   select(wine_review,
          variety) %>%
   cbind(x_test) %>%
-  write.csv("data//output//lasso//x_test.csv", row.names = FALSE)
+  write.csv("data//output//lasso//5 percent//x_test.csv", row.names = FALSE)
 
 
-write.csv(pred_train, "data//output//lasso//pred_train.csv", row.names = FALSE)
-write.csv(pred_test, "data//output//lasso//pred_test.csv", row.names = FALSE)
+write.csv(pred_train, "data//output//lasso//5 percent//pred_train.csv", row.names = FALSE)
+write.csv(pred_test, "data//output//lasso//5 percent//pred_test.csv", row.names = FALSE)
 
 
