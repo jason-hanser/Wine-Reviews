@@ -36,7 +36,7 @@ rm(wine_reviews)
 ######## VARIABLE SELECTION ########
 ####################################
 
-## Unnesting tokens and removing stop words or place holders (i.e. capitilized words)
+## Un-nesting tokens and removing stop words or place holders (i.e. capitalized words)
 
 wine_reviews_train %>%
   unnest_tokens(input    = clean_desc,
@@ -60,10 +60,10 @@ wine_tokens %>%
   mutate(FREQ = TOKEN_CT/VARIETY_CT) -> wine_tokens
 
 
-## Filtering out tokens that appear in less than 2.5% of reviews
+## Filtering out tokens that appear in less than 5% of reviews
 
 wine_tokens %>%
-  filter(FREQ >= 0.05) -> wine_tokens
+  filter(FREQ >= 0.025) -> wine_tokens
 
 
 
@@ -75,7 +75,7 @@ wine_tokens %>%
 
 wine_reviews_train[paste0("token_", unique(wine_tokens$token))] <- NA
 
-## Searching wine discription for variables (i.e. tokens)
+## Searching wine description for variables (i.e. tokens)
 
 wine_reviews_train %>%
   mutate_at(.vars = vars(matches("^token_")),
@@ -101,7 +101,7 @@ wine_reviews_train %>%
 
 wine_reviews_test[paste0("token_", unique(wine_tokens$token))] <- NA
 
-## Searching wine discription for variables (i.e. tokens)
+## Searching wine description for variables (i.e. tokens)
 
 wine_reviews_test %>%
   mutate_at(.vars = vars(matches("^token_")),
@@ -125,38 +125,31 @@ wine_reviews_test %>%
 
 ## Fitting the model to the training data
 
-t1 <- Sys.time()
-
 svm_fit <- tune.svm(x = x_train,
                     y = as.factor(wine_reviews_train$variety),
                     type   = "C-classification",
                     scale  = FALSE,
-                    cost   = 100,
-                    gamma  = 0.1,
-          #          cost   = c(1, 50, 100, 250, 500),
-          #          gamma  = c(0.01, 0.05, 0.1, 0.5, 1),
-                    tunecontrol = tune.control(cross = 4))
+                    cost   = c(0.01, 0.1, 1, 10, 100),
+                    gamma  = c(0.01, 0.05, 0.1, 0.5, 1),
+                    tunecontrol = tune.control(cross = 5))
 
-t2 <- Sys.time()
-
-t2 - t1
 
 ## Getting predictions for training data
 
 wine_reviews_train %>%
   select(wine_review,
          variety) %>%
-  mutate(pred = predict(object = svm_fit$best.model,
-                        newx   = x_train)) -> y_train
+  mutate(pred = predict(object  = svm_fit$best.model,
+                        newdata = x_train)) -> y_train
 
 
 ## Getting predictions for test data
 
-wine_reviews_train %>%
+wine_reviews_test %>%
   select(wine_review,
          variety) %>%
-  mutate(pred = predict(object = svm_fit$best.model,
-                        newx   = x_test)) -> y_test
+  mutate(pred = predict(object  = svm_fit$best.model,
+                        newdata = x_test)) -> y_test
 
 
 
@@ -165,21 +158,26 @@ wine_reviews_train %>%
 ######## WRITING DATA TO FILE ########
 ######################################
 
+## saving data files
+
 wine_reviews_train %>%
   select(wine_review,
          variety) %>%
   cbind(x_train) %>%
-  write.csv("data//output//svm//x_train.csv", row.names = FALSE)
+  write.csv("data//output//svm//2_5 percent//x_train.csv", row.names = FALSE)
 
 wine_reviews_test %>%
   select(wine_review,
          variety) %>%
   cbind(x_test) %>%
-  write.csv("data//output//svm//x_test.csv", row.names = FALSE)
+  write.csv("data//output//svm//2_5 percent//x_test.csv", row.names = FALSE)
 
-write.csv(y_train, "data//output//svm//pred_train.csv", row.names = FALSE)
-write.csv(y_test, "data//output//svm//pred_test.csv", row.names = FALSE)
+write.csv(y_train, "data//output//svm//2_5 percent//pred_train.csv", row.names = FALSE)
+write.csv(y_test, "data//output//svm//2_5 percent//pred_test.csv", row.names = FALSE)
 
+## Saving model to file
+
+saveRDS(svm_fit, "data//output//svm//2_5 percent//svm_model.rds")
 
 
 
