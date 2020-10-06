@@ -63,7 +63,7 @@ wine_tokens %>%
 ## Filtering out tokens that appear in less than 5% of reviews
 
 wine_tokens %>%
-  filter(FREQ >= 0.025) -> wine_tokens
+  filter(FREQ >= 0.05) -> wine_tokens
 
 
 
@@ -164,20 +164,20 @@ wine_reviews_train %>%
   select(wine_review,
          variety) %>%
   cbind(x_train) %>%
-  write.csv("data//output//svm//2_5 percent//x_train.csv", row.names = FALSE)
+  write.csv("data//output//svm//5 percent//x_train.csv", row.names = FALSE)
 
 wine_reviews_test %>%
   select(wine_review,
          variety) %>%
   cbind(x_test) %>%
-  write.csv("data//output//svm//2_5 percent//x_test.csv", row.names = FALSE)
+  write.csv("data//output//svm//5 percent//x_test.csv", row.names = FALSE)
 
-write.csv(y_train, "data//output//svm//2_5 percent//pred_train.csv", row.names = FALSE)
-write.csv(y_test, "data//output//svm//2_5 percent//pred_test.csv", row.names = FALSE)
+write.csv(y_train, "data//output//svm//5 percent//pred_train.csv", row.names = FALSE)
+write.csv(y_test, "data//output//svm//5 percent//pred_test.csv", row.names = FALSE)
 
 ## Saving model to file
 
-saveRDS(svm_fit, "data//output//svm//2_5 percent//svm_model.rds")
+saveRDS(svm_fit, "data//output//svm//5 percent//svm_model.rds")
 
 
 
