@@ -129,6 +129,7 @@ svm_fit <- tune.svm(x = x_train,
                     y = as.factor(wine_reviews_train$variety),
                     type   = "C-classification",
                     scale  = FALSE,
+                    kernel = "radial",
                     cost   = c(0.01, 0.1, 1, 10, 100),
                     gamma  = c(0.01, 0.05, 0.1, 0.5, 1),
                     tunecontrol = tune.control(cross = 5))
@@ -164,20 +165,20 @@ wine_reviews_train %>%
   select(wine_review,
          variety) %>%
   cbind(x_train) %>%
-  write.csv("data//output//svm//5 percent//x_train.csv", row.names = FALSE)
+  write.csv("data//output//svm//5_percent//x_train.csv", row.names = FALSE)
 
 wine_reviews_test %>%
   select(wine_review,
          variety) %>%
   cbind(x_test) %>%
-  write.csv("data//output//svm//5 percent//x_test.csv", row.names = FALSE)
+  write.csv("data//output//svm//5_percent//x_test.csv", row.names = FALSE)
 
-write.csv(y_train, "data//output//svm//5 percent//pred_train.csv", row.names = FALSE)
-write.csv(y_test, "data//output//svm//5 percent//pred_test.csv", row.names = FALSE)
+write.csv(y_train, "data//output//svm//5_percent//pred_train.csv", row.names = FALSE)
+write.csv(y_test, "data//output//svm//5_percent//pred_test.csv", row.names = FALSE)
 
 ## Saving model to file
 
-saveRDS(svm_fit, "data//output//svm//5 percent//svm_model.rds")
+saveRDS(svm_fit, "data//output//svm//5_percent//svm_model.rds")
 
 
 
