@@ -67,7 +67,7 @@ wine_tokens %>%
   filter(FREQ >= 0.05) -> wine_tokens
 
 
-  
+
 #####################################################
 ######## MATRIX CONSTRUCTION - TRAINING DATA ########
 #####################################################
@@ -91,70 +91,6 @@ wine_reviews_train %>%
 wine_reviews_train %>%
   select_at(.vars = vars(matches("^token_"))) %>%
   as.matrix() -> x_train
-
-
-
-###################################################
-######## MODELING THE DATA - TRAINING DATA ########
-###################################################
-
-registerDoParallel(4)
-
-temp_variety <- unique(wine_reviews_train$variety)
-
-wine_reviews_train %>%
-  select(wine_review,
-         variety) -> y_train
-  
-for (i in temp_variety) {
-  
-  ## Getting the response variable
-  
-  y_train %>%
-    mutate(variety_ind = ifelse(variety == i, 1, 0)) %>%
-    select(variety_ind) %>%
-    as.matrix() -> temp_y_train
-  
-  ## Fitting the model to the training data
-  
-  cv_fit <- cv.glmnet(x = x_train,
-                      y = temp_y_train,
-                      family = "binomial",
-                      alpha  = 1,
-                      nfolds = 10,
-                      parallel = TRUE)
-  
-  ## Getting predictions for training data (for i of temp_variety)
-  
-  y_train %>%
-    mutate(pred = predict(object = cv_fit,
-                          newx   = x_train,
-                          type   = "link",
-                          s      = "lambda.min")) %>%
-    mutate(pred = exp(pred)/(1+exp(pred))) %>%
-    rename(!!i := pred) -> y_train
-  
-  ## Cleaning up loop
-  
-  rm(cv_fit, temp_y_train)
-  print(i)
-  
-}
-rm(i, temp_variety)
-
-
-## Getting predictions for training data (overall predictions)
-
-y_train %>%
-  gather("pred", "prob", 3:12) %>%
-  group_by(wine_review) %>%
-  top_n(n = 1, wt = prob) %>%
-  select(wine_review,
-         pred) %>%
-  left_join(x  = y_train,
-            by = "wine_review") -> pred_train
-
-
 
 
 #################################################
@@ -183,9 +119,11 @@ wine_reviews_test %>%
 
 
 
-###############################################
-######## MODELING THE DATA - TEST DATA ########
-###############################################
+###################################
+######## MODELING THE DATA ########
+###################################
+
+registerDoParallel(4)
 
 temp_variety <- unique(wine_reviews_train$variety)
 
@@ -218,6 +156,16 @@ for (i in temp_variety) {
   
   ## Getting predictions for training data (for i of temp_variety)
   
+  y_train %>%
+    mutate(pred = predict(object = cv_fit,
+                          newx   = x_train,
+                          type   = "link",
+                          s      = "lambda.min")) %>%
+    mutate(pred = exp(pred)/(1+exp(pred))) %>%
+    rename(!!i := pred) -> y_train
+  
+  ## Getting predictions for test data (for i of temp_variety)
+  
   y_test %>%
     mutate(pred = predict(object = cv_fit,
                           newx   = x_test,
@@ -226,14 +174,29 @@ for (i in temp_variety) {
     mutate(pred = exp(pred)/(1+exp(pred))) %>%
     rename(!!i := pred) -> y_test
   
+  ## Saving model to file
+  
+  saveRDS(cv_fit, paste0("data//output//lasso//5 percent//glmnet models//", i, ".rds"))
+  
   ## Cleaning up loop
   
-  rm(cv_fit, temp_y_train)
+  rm(cv_fit, temp_y_train, temp_y_test)
   print(i)
   
 }
 rm(i, temp_variety)
 
+
+## Getting predictions for training data (overall predictions)
+
+y_train %>%
+  gather("pred", "prob", 3:12) %>%
+  group_by(wine_review) %>%
+  top_n(n = 1, wt = prob) %>%
+  select(wine_review,
+         pred) %>%
+  left_join(x  = y_train,
+            by = "wine_review") -> pred_train
 
 ## Getting predictions for training data (overall predictions)
 
