@@ -1,0 +1,372 @@
+---
+output: 
+  html_document:
+    theme: default
+    highlight: haddock
+    df_print: tibble
+---
+
+<style>
+h1 {
+  padding-bottom: 20px;
+}
+.main-container {
+  max-width: 70%;
+  margin-left: 15%;
+  margin-right: 15%;
+  text-align: justify;
+}
+.container{
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-right: 0;
+  padding-left: 0;
+}
+border {
+  padding: 10px;
+}
+</style>
+
+``` {r echo = FALSE, message = FALSE, warning = FALSE}
+
+## Loading Libraries
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(gridExtra)
+
+## Loading Data
+
+x_train    <- read.csv("data//output//lasso//2_5 percent//x_train.csv",  stringsAsFactors = FALSE)
+lasso_pred   <- read.csv("data//output//lasso//2_5 percent//pred_test.csv", stringsAsFactors = FALSE)
+svm_pred <- read.csv("data//output//svm//2_5 percent//pred_test.csv", stringsAsFactors = FALSE)
+
+
+## Plotting the frequency of various words for the different varieties of wines
+
+temp_var <- c("tannin", "apple", "dry", "sweet", "spice", "cherry", "pepper", "lemon", "crisp", "oak")
+
+x_train %>%
+  select(wine_review,
+         variety,
+         matches(paste0("token_", temp_var, "$"))) %>%
+  gather("token", "IND", 3:12) %>%
+  mutate(token = str_extract(token, "(?<=_).*$")) %>%
+  group_by(variety,
+           token) %>%
+  summarise(MEAN = mean(IND)) %>%
+  ungroup() %>%
+  ggplot() +
+    geom_tile(aes(x = token,
+                  y = reorder(variety, desc(variety)),
+                  fill = MEAN)) +
+    geom_text(aes(x     = token,
+                  y     = variety,
+                  label = scales::percent(MEAN, accuracy = 1)),
+              color = "black") +
+    scale_fill_gradient(guide = FALSE,
+                        breaks = c(0, 0.01, 0.05, 0.10, 0.17, 0.27, 0.40, 0.55, 0.75, 1),
+                        low    = "white",
+                        high   = "darkred") +
+    scale_x_discrete(position = "top") +
+    theme(axis.ticks       = element_blank(),
+          panel.background = element_blank(),
+          axis.title       = element_blank(),
+          axis.text        = element_text(color = "black",
+                                          size  = 12),
+          axis.text.x      = element_text(angle = 45, 
+                                          hjust = 0, 
+                                          vjust = 1.25),
+          plot.margin      = margin(0, 0.5, 0, 0, "cm")) -> plot_1
+
+##
+
+merge(unique(lasso_pred$variety),
+      unique(lasso_pred$variety)) %>%
+  rename(variety = x,
+         pred    = y) %>%
+  left_join(y  = lasso_pred,
+            by = c("variety", "pred")) %>%
+  group_by(variety,
+           pred) %>%
+  summarise(CT = sum(is.na(wine_review) == FALSE)) %>%
+  group_by(variety) %>%
+  mutate(PCT = CT/sum(CT)) %>%
+  ungroup() %>%
+  mutate(tPCT =ifelse(pred == variety, PCT, -PCT)) %>%
+  ggplot() +
+    geom_tile(aes(x = pred,
+                  y = reorder(variety, desc(variety)),
+                  fill = tPCT)) +
+    geom_text(aes(x     = pred,
+                  y     = variety,
+                  label = scales::percent(PCT, accuracy = 1)),
+              color = "black") +
+    scale_fill_gradient2(guide  = FALSE,
+                         low    = "darkred",
+                         mid = "white",
+                         high   = "darkgreen") +
+    labs(x = "Predicted") +
+    scale_x_discrete(position = "top") +
+    theme(axis.ticks       = element_blank(),
+          panel.background = element_blank(),
+          axis.title.x     = element_text(color = "black",
+                                          size = 12),
+          axis.title.y     = element_blank(),
+          axis.text        = element_text(color = "black",
+                                          size  = 12),
+          axis.text.x      = element_text(angle = 45, 
+                                          hjust = 0, 
+                                          vjust = 1.25),
+          plot.margin      = margin(0, 0.5, 0, 0, "cm")) -> plot_2
+
+
+##
+
+merge(unique(svm_pred$variety),
+      unique(svm_pred$variety)) %>%
+  rename(variety = x,
+         pred    = y) %>%
+  left_join(y  = svm_pred,
+            by = c("variety", "pred")) %>%
+  group_by(variety,
+           pred) %>%
+  summarise(CT = sum(is.na(wine_review) == FALSE)) %>%
+  group_by(variety) %>%
+  mutate(PCT = CT/sum(CT)) %>%
+  ungroup() %>%
+  mutate(tPCT =ifelse(pred == variety, PCT, -PCT)) %>%
+  ggplot() +
+    geom_tile(aes(x = pred,
+                  y = reorder(variety, desc(variety)),
+                  fill = tPCT)) +
+    geom_text(aes(x     = pred,
+                  y     = variety,
+                  label = scales::percent(PCT, accuracy = 1)),
+              color = "black") +
+    labs(x = "Predicted") +
+    scale_fill_gradient2(guide  = FALSE,
+                         low    = "darkred",
+                         mid    = "white",
+                         high   = "darkgreen") +
+    scale_x_discrete(position = "top") +
+    theme(axis.ticks       = element_blank(),
+          panel.background = element_blank(),
+          axis.title.x     = element_text(color = "black",
+                                          size = 12),
+          axis.title.y     = element_blank(),
+          axis.text        = element_text(color = "black",
+                                          size  = 12),
+          axis.text.x      = element_text(angle = 45, 
+                                          hjust = 0, 
+                                          vjust = 1.25),
+          plot.margin      = margin(0, 0.5, 0, 0, "cm")) -> plot_3
+
+
+```
+
+# Wine Classification Project
+
+### Introduction
+
+I was searching a new pet project --- something I could present to the R user group on campus that I help run --- when I came across [a data set on Kaggle](https://www.kaggle.com/zynicide/wine-reviews) containing 130K wine reviews. Each review contained information about a particular wine, including its price, year, variety, as well as short description. I had recently watched a documentary about the wine industry and have always been amazed by sommeliers who are able to pick out the faintest notes of oak, pepper, citrus, and other flavors. SO I wanted to see if you could use these characteristics to predict the variety of a wine.
+
+### Project Overview
+
+The goal of this project is to build a classifier to accurately predict a wine's variety based on its description. 
+
+### Pre-Processing Data
+
+Before we actually model the data, we have to do a little data cleaning. I won't walk through the code, but here is a summary of those steps:
+
+* **Selecting the most common varieties of wine.** The full data set contains reviews for more than 100 different varieties of wine, some of which are extremely rare. In addition to increasing the computation time, this creates some class imbalance issues. So rather than working with the full data set, I decided to limit this project to the ten most frequently reviewed non-blended wines. 
+
+* **Removing the variety from the wine descriptions.** Often the description of the wine will contain the variety of the wine. This is an obvious [leakage](https://en.wikipedia.org/wiki/Leakage_(machine_learning)) issue, so I stripped out any mention of the wine's variety from its description. 
+
+* **Removing other words from the wine descriptions.** I also removed additional words that may provide information about a wine's variety, such as its nation or region of origin, the name of the winery that produced the wine, the year the wine was produced, and references to certain colors (e.g. red, white, blush). Again, we want to classify wines based on their flavor profile.
+
+* **Lemmatizing words** Finally, I [lemmatized](https://en.wikipedia.org/wiki/Lemmatisation) words within the wine descriptions. This process reduces each word within a description to its root form (e.g. cherries -> cherry), ultimately reducing the number of unique words within the data set. 
+
+The final data set contains wine reviews for some `r format(nrow(x_train)+nrow(svm_pred), big.mark = ",")` wines.
+
+### Variable Selection
+
+For this project, I used a [bag-of-words method](https://en.wikipedia.org/wiki/Bag-of-words_model) where the variables represent the presence or absence of a word within a wine's description. To do this, I tokenized the wine descriptions and calculated the frequency of each token within each variety of wine. After playing around with some different cutoffs, I decided to use any token than appeared in more than 2.5% of reviews for a given variety as a variable. 
+
+In the figure below, you can see the frequency of select tokens within each variety. As you can see, there are some clear differences in the words commonly used to describe different varieties of wine, suggesting that we be able to build a decent classifier. 
+
+``` {r echo = FALSE, out.width = "85%", fig.align = "center"}
+
+plot_1
+
+```
+
+### Modeling the Data
+
+For this project, I decided to construct two classifiers using different methods. I've provided highlights of the code below, but you can find the full code in [my repository](https://github.com/jason-hanser/Wine-Reviews). 
+
+#### Method 1: Lasso Regression
+
+First, I used [Lasso Regression](https://en.wikipedia.org/wiki/Lasso_(statistics)) using a [one-vs-rest](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-rest) method. While the `glmnet` function has a built-in option for multiclass problems, the computation time was significantly longer and the predictions for the training data were only marginally better. Plus, I specifically want to demonstrate how to implement a one-vs-rest approach.
+
+Below, you can see my implementation. For each interaction of the loop, I train a classifier for a different variety of wine using a 10-fold cross validation and parallelized approach. Then, after the model is fit to the data, I get the predictions for the training and test data using the appropriate tuning parameter (i.e. lambda), which gives me the probability that a given wine belongs to the variety being modeled in the loop. Once the loop has finished, each wine will have been scored 10 times --- once for each variety of wine. To get the prediction for each wine, I select the variety with the highest probability for each wine.
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+registerDoParallel(4)
+
+temp_variety <- unique(wine_reviews_train$variety)
+
+wine_reviews_train %>%
+  select(wine_review,
+         variety) -> y_train
+
+wine_reviews_test %>%
+  select(wine_review,
+         variety) -> y_test
+
+for (i in temp_variety) {
+  
+  ## Getting the response variable
+  
+  y_train %>%
+    mutate(variety_ind = ifelse(variety == i, 1, 0)) %>%
+    select(variety_ind) %>%
+    as.matrix() -> temp_y_train
+  
+  ## Fitting the model to the training data
+  
+  cv_fit <- cv.glmnet(x = x_train,
+                      y = temp_y_train,
+                      family = "binomial",
+                      alpha  = 1,
+                      nfolds = 10,
+                      parallel = TRUE)
+  
+  ## Getting predictions for training data (for i of temp_variety)
+  
+  y_train %>%
+    mutate(pred = predict(object = cv_fit,
+                          newx   = x_train,
+                          type   = "link",
+                          s      = "lambda.min")) %>%
+    mutate(pred = exp(pred)/(1+exp(pred))) %>%
+    rename(!!i := pred) -> y_train
+  
+  ## Getting predictions for test data (for i of temp_variety)
+  
+  y_test %>%
+    mutate(pred = predict(object = cv_fit,
+                          newx   = x_test,
+                          type   = "link",
+                          s      = "lambda.min")) %>%
+    mutate(pred = exp(pred)/(1+exp(pred))) %>%
+    rename(!!i := pred) -> y_test
+  
+  ## Saving model to file
+  
+  saveRDS(cv_fit, paste0("data//output//lasso//5 percent//glmnet models//", i, ".rds"))
+  
+  ## Cleaning up loop
+  
+  rm(cv_fit, temp_y_train, temp_y_test)
+  print(i)
+  
+}
+rm(i, temp_variety)
+
+## Getting predictions for training data (overall predictions)
+
+y_train %>%
+  gather("pred", "prob", 3:12) %>%
+  group_by(wine_review) %>%
+  top_n(n = 1, wt = prob) %>%
+  select(wine_review,
+         pred) %>%
+  left_join(x  = y_train,
+            by = "wine_review") -> pred_train
+
+## Getting predictions for training data (overall predictions)
+
+y_test %>%
+  gather("pred", "prob", 3:12) %>%
+  group_by(wine_review) %>%
+  top_n(n = 1, wt = prob) %>%
+  select(wine_review,
+         pred) %>%
+  left_join(x  = y_test,
+            by = "wine_review") -> pred_test
+
+```
+
+
+#### Method 2: Support Vector Machine
+
+For my second method, I used a [Support Vector Machine](https://en.wikipedia.org/wiki/Support_vector_machine) (SVM). And, because this process is a lot more computationally expensive, I ran the code on an AWS EC2 instance rather than bogging down my machine for a few days. If you've never used R Studio on AWS, [here](https://towardsdatascience.com/how-to-run-rstudio-on-aws-in-under-3-minutes-for-free-65f8d0b6ccda) is a brief tutorial. 
+
+As you can see below, the SVM has two parameters we have tune: cost and gamma. I played around with a subset of the training to data to get a rough feel for the range. I also tested a few different kernel types before selecting the radial option. I conducted the grid search using the `tune.svm` function, then I used the `best.model` option to select the cost and gamma values with the best performance on the cross-validated data. Here, I only used a 5-fold approach to save time. 
+
+``` {r, attr.source = ".numberLines", eval = FALSE}
+
+## Fitting the model to the training data
+
+svm_fit <- tune.svm(x = x_train,
+                    y = as.factor(wine_reviews_train$variety),
+                    type   = "C-classification",
+                    scale  = FALSE,
+                    kernel = "radial",
+                    cost   = c(0.01, 0.1, 1, 10, 100),
+                    gamma  = c(0.01, 0.05, 0.1, 0.5, 1),
+                    tunecontrol = tune.control(cross = 5))
+
+## Getting predictions for training data
+
+wine_reviews_train %>%
+  select(wine_review,
+         variety) %>%
+  mutate(pred = predict(object  = svm_fit$best.model,
+                        newdata = x_train)) -> y_train
+
+## Getting predictions for test data
+
+wine_reviews_test %>%
+  select(wine_review,
+         variety) %>%
+  mutate(pred = predict(object  = svm_fit$best.model,
+                        newdata = x_test)) -> y_test
+
+```
+
+### Results
+
+#### Method 1: Lasso Regression
+
+Overall, the lasso model was able to correctly predict the variety `r scales::percent(mean(lasso_pred$variety == lasso_pred$pred), 0.1)` of the time for our test data. Not too bad, but the performance doesn't look as good when you look at the accuracy for each variety. 
+
+In the plot below, you can see a summary of the predictions for each variety. Just 6% of merlots were accurately classified (yikes!). As you can see, merlots were commonly mistaken for other red varieties. 39% of the time merlots were incorrectly classified as a cabernet sauvignon and 23% as a pinot noir. 
+
+
+``` {r echo = FALSE, out.width = "85%", fig.align = "center"}
+
+plot_2
+
+```
+
+#### Method 2: Support Vector Machine
+
+By contrast, the SVM model was correct `r scales::percent(mean(svm_pred$variety == svm_pred$pred), 0.1)` of the time. While better, the model still does a poor job of distinguishing merlots from cabernet sauvignons and pinot noirs. This is likely to due to a class imbalance issue. Within the training data, there are just `r format(nrow(x_train[x_train$variety == "Merlot",]), big.mark=",")` reviews for Merlots, compared to `r format(nrow(x_train[x_train$variety == "Cabernet Sauvignon",]), big.mark=",")` and `r format(nrow(x_train[x_train$variety == "Pinot Noir",]), big.mark=",")` reviews for cabernet sauvignons and pinot noirs, respectively.
+
+``` {r echo = FALSE, out.width = "85%", fig.align = "center"}
+
+plot_3
+
+```
+
+### Final Remarks 
+
+The SVM model provided a significant increase in accuracy over the lasso method. However, the improved performance came at a cost: speed. I was able to train the lasso models within a couple of hours on my local machine, an old Dell laptop. The SVM on the other hand takes 3-4 days to train on an AWS EC2 instance. 
+
+This was a relatively, quick first pass and meant to demonstrate a few methods. At some point, I may revisit this project and try to improve the performance, particularly for Merlot and the other less common wine varieties within the dataset. But --- for now --- I am satisfied.
