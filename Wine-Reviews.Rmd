@@ -45,6 +45,15 @@ lasso_pred   <- read.csv("data//output//lasso//2_5 percent//pred_test.csv", stri
 svm_pred <- read.csv("data//output//svm//2_5 percent//pred_test.csv", stringsAsFactors = FALSE)
 
 
+## Naive model accuracy
+
+x_train %>%
+  group_by(variety) %>%
+  summarise(CT = n()) %>%
+  ungroup() %>%
+  mutate(PCT = CT/sum(CT)) -> temp_variety_freq
+
+
 ## Plotting the frequency of various words for the different varieties of wines
 
 temp_var <- c("tannin", "apple", "dry", "sweet", "spice", "cherry", "pepper", "lemon", "crisp", "oak")
@@ -367,6 +376,6 @@ plot_3
 
 ### Final Remarks 
 
-The SVM model provided a significant increase in accuracy over the lasso method. However, the improved performance came at a cost: speed. I was able to train the lasso models within a couple of hours on my local machine, an old Dell laptop. The SVM on the other hand takes 3-4 days to train on an AWS EC2 instance. 
+The SVM model provided a significant increase in accuracy over the lasso method. It was able to accurately predict a wine's variety `r scales::percent(mean(svm_pred$variety == svm_pred$pred), 0.1)`, compared to `r scales::percent(max(temp_variety_freq$PCT), 0.1)` of the time using a naive model. However, the improved performance came at a cost: speed. I was able to train the lasso models within a couple of hours on my local machine, an old Dell laptop. The SVM on the other hand takes three to four days to train on an AWS EC2 instance. 
 
 This was a relatively, quick first pass and meant to demonstrate a few methods. At some point, I may revisit this project and try to improve the performance, particularly for Merlot and the other less common wine varieties within the dataset. But --- for now --- I am satisfied.
